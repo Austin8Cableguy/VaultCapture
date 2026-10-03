@@ -1,0 +1,58 @@
+name: Build
+
+on:
+  push:
+    branches: [main]
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compile VaultCapture.exe (.NET Framework 4.8)
+        shell: pwsh
+        run: |
+          $vs  = & "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.Component.MSBuild -property installationPath
+          $csc = Join-Path $vs 'MSBuild\Current\Bin\Roslyn\csc.exe'
+          $ref = "${env:ProgramFiles(x86)}\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.8"
+          if (-not (Test-Path $ref)) { $ref = "$env:WINDIR\Microsoft.NET\Framework64\v4.0.30319" }
+          Write-Host "csc: $csc"; Write-Host "refs: $ref"
+          New-Item -ItemType Directory -Force dist | Out-Null
+          Push-Location src
+          $sources = (Get-ChildItem Core\*.cs, App\*.cs).FullName
+          & $csc -nologo -langversion:latest -nostdlib -noconfig -target:winexe -platform:anycpu -optimize+ `
+            -out:..\dist\VaultCapture.exe -win32icon:app.ico -win32manifest:app.manifest -resource:app.ico,VaultCapture.app.ico `
+            "-r:$ref\mscorlib.dll" "-r:$ref\System.dll" "-r:$ref\System.Core.dll" "-r:$ref\System.Web.Extensions.dll" `
+            "-r:$ref\System.Windows.Forms.dll" "-r:$ref\System.Drawing.dll" $sources
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          Get-Item dist\VaultCapture.exe | Format-List Name, Length
+          (Get-FileHash dist\VaultCapture.exe -Algorithm SHA256).Hash
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: VaultCapture
+          path: dist/VaultCapture.exe
+
+      - name: Attach to the published release
+        if: github.event_name == 'release'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" dist/VaultCapture.exe --clobber
+
+      - name: Replace the exe on the latest release (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = gh release view --json tagName -q .tagName
+          gh release upload $tag dist/VaultCapture.exe --clobber
