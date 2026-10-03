@@ -207,7 +207,8 @@ internal sealed class CaptureForm : Form
     {
         var d = Current;
         if (d == null) return;
-        _txt.ScrollBars = d.Mode == CaptureMode.Inbox ? ScrollBars.Vertical : ScrollBars.None;
+        // No scrollbar: the text box scrolls with the caret and mouse wheel, and a native scrollbar clashes with the theme.
+        _txt.ScrollBars = ScrollBars.None;
         switch (d.Mode)
         {
             case CaptureMode.Daily: _placeholder.Text = "New capture"; break;

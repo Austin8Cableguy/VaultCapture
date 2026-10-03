@@ -115,6 +115,13 @@ internal sealed class SettingsForm : Form
         Invalidate(true);
     }
 
+    protected override void OnShown(EventArgs e)
+    {
+        base.OnShown(e);
+        _cboVault.Select(0, 0);
+        _navItems[0].Focus();
+    }
+
     protected override void OnHandleCreated(EventArgs e)
     {
         base.OnHandleCreated(e);
@@ -125,7 +132,7 @@ internal sealed class SettingsForm : Form
 
     private static TableLayoutPanel Grid()
     {
-        var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12), AutoScroll = true };
+        var t = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 2, Padding = new Padding(12), AutoScroll = false };
         t.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 170));
         t.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
         return t;
@@ -436,6 +443,6 @@ internal sealed class NavItem : ThemedControl
         if (Selected)
             using (var b = new SolidBrush(p.Accent)) g.FillRectangle(b, 0, r.Y + r.Height / 4, 3, r.Height / 2);
         using (var f = new Font(Font, Selected ? FontStyle.Bold : FontStyle.Regular))
-            TextRenderer.DrawText(g, Text, f, new Rectangle(12, 0, Width - 12, Height), p.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left);
+            TextRenderer.DrawText(g, Text, f, new Rectangle(12, 0, Width - 12, Height), p.Text, TextFormatFlags.VerticalCenter | TextFormatFlags.Left | TextFormatFlags.NoPrefix);
     }
 }
