@@ -1,0 +1,4 @@
+dist/
+selftest-results/
+tests/bin/
+tests/obj/
